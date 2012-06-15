@@ -1,0 +1,13 @@
+RewriteEngine On
+
+###
+# OMG I hate mod rewrite.
+
+RewriteCond %{REQUEST_FILENAME} ^(.*)/.*$ 
+RewriteRule (.*) - [env=MYDIR:%1]
+RewriteCond %{ENV:MYDIR}/cache/%{PATH_INFO} -f
+RewriteRule . %{ENV:MYDIR}/cache/%{PATH_INFO} [L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule . %{ENV:MYDIR}/index.php [L]
+
