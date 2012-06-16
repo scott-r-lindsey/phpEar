@@ -44,6 +44,7 @@ class phpEar{
 
     private $format           = false;
     private $local_raw        = false;
+    private $missing          = false;
 
     public function phpEar(){
     }
@@ -57,11 +58,11 @@ class phpEar{
 
         if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)\.(png|jpg|gif)$/', $file, $matches)){
             list($match, $name, $xy, $size, $format) = $matches;
-            $this->incomingPath = "$name/$xy$size.$format";
+            $this->incomingPath = "$xy$size.$format";
         }
         else if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)-([\d]+)\.(png|jpg|jpeg|gif)$/i', $file, $matches)){
             list($match, $name, $xy, $size, $altmax, $format) = $matches;
-            $this->incomingPath = "$name/$xy$size-$altmax.$format";
+            $this->incomingPath = "$xy$size-$altmax.$format";
         }
         else{
             $this->fail();
@@ -69,7 +70,13 @@ class phpEar{
 
         $this->format       = $this->parseFormat($format);
         $this->local_raw    = $this->ds($this->fetchFile($name));
-        $this->local_cooked = $this->ds($this->cachedir . '/' .  $this->incomingPath);
+        
+        if ($this->missing){
+            $this->local_cooked = $this->ds($this->cachedir . '/missing/' . $this->incomingPath);
+        }
+        else{
+            $this->local_cooked = $this->ds($this->cachedir . '/' . $name . '/' . $this->incomingPath);
+        }
 
         if (    (! file_exists($this->local_cooked)) or 
                 ( filemtime($this->local_cooked) != filemtime($this->local_cooked))){
@@ -84,7 +91,7 @@ class phpEar{
             $img = $this->getSized($xy, $size, $altmax);
 
             if ('png' == $this->format){
-                imagepng($img, $this->local_cooked, $this->pngquality) ||
+                imagepng($img, $this->local_cooked, $this->png_quality) ||
                     $this->fail('png creation error');
             }
             else if ('gif' == $this->format){
@@ -192,6 +199,7 @@ class phpEar{
                 return $source;
             }
         }
+        $this->missing = true;
         return $this->failimg;
     }
     private function netFetch($source){
