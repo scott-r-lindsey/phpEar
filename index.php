@@ -37,10 +37,13 @@ class phpEar{
     public $max_y             = 648;
     public $max_x             = 800;
     public $cachedir          = 'cache/';
-    public $failimg           = 'notavailable.png';
+    public $failimg           = 'missing.png';
+    public $png_quality       = 9;
+    public $jpeg_quality      = 85;
+    public $dir_mode          = 0775;
 
-    private $format             = false;
-    private $local_image        = false;
+    private $format           = false;
+    private $local_raw        = false;
 
     public function phpEar(){
     }
@@ -48,8 +51,9 @@ class phpEar{
         $this->validate();
 
         $folder         = dirname($_SERVER['SCRIPT_FILENAME']);                     // the full path to here
-        $urlfolder      = substr($folder, strlen($_SERVER['DOCUMENT_ROOT']));       // '/covers/'
+        $urlfolder      = substr($folder, strlen($_SERVER['DOCUMENT_ROOT']));       // '/images/'
         $file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
+        $altmax         = false;
 
         if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)\.(png|jpg|gif)$/', $file, $matches)){
             list($match, $name, $xy, $size, $format) = $matches;
@@ -64,8 +68,91 @@ class phpEar{
         }
 
         $this->format       = $this->parseFormat($format);
-        $this->local_image  = $this->fetchFile($name);
+        $this->local_raw    = $this->ds($this->fetchFile($name));
+        $this->local_cooked = $this->ds($this->cachedir . '/' .  $this->incomingPath);
 
+        if (    (! file_exists($this->local_cooked)) or 
+                ( filemtime($this->local_cooked) != filemtime($this->local_cooked))){
+                // if the file does not exist, or else it does and the timestamp is wrong...
+
+            $cooked_dir = dirname($this->local_cooked);
+
+            if (! file_exists($cooked_dir)){
+                ($this->mkpath ($cooked_dir, 0777));
+            }
+
+            $img = $this->getSized($xy, $size, $altmax);
+
+            if ('png' == $this->format){
+                imagepng($img, $this->local_cooked, $this->pngquality) ||
+                    $this->fail('png creation error');
+            }
+            else if ('gif' == $this->format){
+                imagegif($img, $this->local_cooked) ||
+                    $this->fail('gif creation error');
+            }
+            else if ('jpeg' == $this->format){
+                imagejpeg($img, $this->local_cooked, $this->jpeg_quality) ||
+                    $this->fail('jpeg creation error');
+            }
+
+            $time = filemtime($this->local_raw);
+            chmod (777, $this->local_cooked);
+            touch ($file, $time, $time);
+        }
+
+        header('Content-type:  image/' . $this->format);
+        readfile($this->local_cooked);
+    }
+    private function ds ($str){
+        // de-slash
+        return str_replace('//', '/', $str);
+    }
+    private function getSized($xy, $size, $altmax ){
+
+        $dims = getimagesize($this->local_raw);
+
+        if ('image/jpeg' == $dims['mime']){
+            $src_img = imagecreatefromjpeg($this->local_raw);
+        }
+        else if ('image/gif' == $dims['mime']){
+            $src_img = imagecreatefromgif($this->local_raw);
+        }
+        else if ('image/png' == $dims['mime']){
+            $src_img = imagecreatefrompng($this->local_raw);
+        }
+        
+        $old_x      = imageSX($src_img);
+        $old_y      = imageSY($src_img);
+
+        if ('x' == $xy){
+            $x = $size;
+            $y = round($old_y * ($x/$old_x));
+        }
+        else{
+            $y = $size;
+            $x = round($old_x * ($y/$old_y));
+        }
+
+        if ($altmax){
+            if ($xy == 'x'){
+                if ($y > $altmax){
+                    $y = $altmax;
+                    $x = round($old_x * ($y/$old_y));
+                }
+            }
+            else{
+                if ($x > $altmax){
+                    $x = $altmax;
+                    $y = round($old_y * ($x/$old_x));
+                }
+            }
+        }
+
+        $new_img = imagecreatetruecolor($x, $y);
+        imagecopyresampled($new_img, $src_img, 0, 0, 0, 0, $x, $y, $old_x, $old_y);
+
+        return $new_img;
     }
     private function parseFormat($format){
         $format = strtolower($format);
@@ -77,6 +164,9 @@ class phpEar{
         $this->fail('Could not parse format.');
     }
     private function validate(){
+        // sanity check args
+        // make sure we can open "alt" image
+ 
     }
     private function fail($message){
         $err = error_get_last();
@@ -93,24 +183,23 @@ class phpEar{
         if (    (strncmp($this->source_prefix, 'http://', 7)) ||
                 (strncmp($this->source_prefix, 'https://', 8))){
 
-            return $this->netFetch($source);
+            if ( $file = $this->netFetch($source)){
+               return $file;
+            }
         }
         else{
             if ((file_exists($source)) && (@getimagesize($source))){
-                return $file_exists;
+                return $source;
             }
         }
-        return $this->fail_image;
-
-        print "source is $source";
+        return $this->failimg;
     }
     private function netFetch($source){
         $local = $this->cachedir . '/source/' . 
             preg_replace('/^https?:\/\/([^\/]+)\//i', '', $source);
 
         if (!file_exists(dirname($local))){
-            (mkdir (dirname($local), 0777, true)) || 
-                ($this->fail('Could not create dir ' . dirname($local)));
+            ($this->mkpath (dirname($local), 0777));
         }
 
         $ch = curl_init();
@@ -140,28 +229,17 @@ class phpEar{
         }
         return false;
     }
-}
-    
-/*
+    function mkpath($path) {
 
-$folder         = dirname($_SERVER['SCRIPT_FILENAME']);                     // the full path to here
-$urlfolder      = substr($folder, strlen($_SERVER['DOCUMENT_ROOT']));       // '/covers/'
-$file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
+        $path = str_replace("\\", "/", $path);
+        $dirs = explode("/", $path);
+        $path = '';
 
-$matches        = array();
-
-if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)\.(png|jpg|gif)$/', $file, $matches)){
-    list($match, $name, $xy, $size, $format) = $matches;
+        foreach ($dirs as $d){
+            $path .= $d .'/';
+            if (!file_exists($path)){
+                mkdir($path, $this->dir_mode) || ($this->fail('Could not create dir ' . $path));
+            }
+        }
+    }
 }
-else if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)-([\d]+)\.(png|jpg|gif)$/', $file, $matches)){
-    list($match, $name, $xy, $size, $altmax, $format) = $matches;
-}
-else{
-    fail();
-}
-
-
-function fail(){
-    print "too bad so sad";
-}
-*/
