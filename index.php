@@ -45,16 +45,20 @@ class phpEar{
     private $format           = false;
     private $local_raw        = false;
     private $missing          = false;
+    private $cwd              = false;
 
     public function phpEar(){
     }
     public function run(){
         $this->validate();
 
+        $this->cwd      = dirname(__FILE__); // I think I won't rely on cwd really
+
         $folder         = dirname($_SERVER['SCRIPT_FILENAME']);                     // the full path to here
         $urlfolder      = substr($folder, strlen($_SERVER['DOCUMENT_ROOT']));       // '/images/'
         $file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
         $altmax         = false;
+        $postprocess    = false;
 
         if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)\.(png|jpg|gif)$/', $file, $matches)){
             list($match, $name, $xy, $size, $format) = $matches;
@@ -108,11 +112,28 @@ class phpEar{
             touch ($file, $time, $time);
         }
 
+        $postprocess = true;
+
+        if ($postprocess){
+            header('Connection: close');
+            ignore_user_abort(true);
+        }
+
         header('Content-type:  image/' . $this->format);
+        header('Content-Length: ' . filesize($this->local_cooked));
         readfile($this->local_cooked);
+
+        if ($postprocess){
+            flush();
+            fclose(STDOUT);
+            $this->cleanup();
+        }
     }
     private function ds ($str){
-        // de-slash
+        // de-slash, and make absolute
+        if ('/' != substr($str, 0, 1)){
+            $str = $this->cwd . '/' . $str;
+        }
         return str_replace('//', '/', $str);
     }
     private function getSized($xy, $size, $altmax ){
@@ -257,5 +278,13 @@ class phpEar{
                 mkdir($path, $this->dir_mode) || ($this->fail('Could not create dir ' . $path));
             }
         }
+    }
+    private function cleanup(){
+        touch ($this->cwd . '/control/proc-start');
+
+        // stub
+        // do some work!
+        
+        touch ($this->cwd . '/control/proc-end');
     }
 }
