@@ -134,10 +134,16 @@ class phpEar{
 
         if ('x' == $xy){
             $x = $size;
+            if ($this->max_x < $x){
+                $x = $this->max_x;
+            }
             $y = round($old_y * ($x/$old_x));
         }
         else{
             $y = $size;
+            if ($this->max_y < $y){
+                $y = $this->max_y;
+            }
             $x = round($old_x * ($y/$old_y));
         }
 
@@ -173,6 +179,8 @@ class phpEar{
     private function validate(){
         // sanity check args
         // make sure we can open "alt" image
+        // check write permissions
+        // 
  
     }
     private function fail($message){
