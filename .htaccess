@@ -7,6 +7,7 @@ RewriteRule (.*) - [env=OMGFILE:$1]
 RewriteCond %{REQUEST_FILENAME} ^(.*)/.*$ 
 RewriteRule (.*) - [env=MYDIR:%1]
 RewriteCond %{ENV:MYDIR}/cache/%{ENV:OMGFILE} -f
+RewriteCond %{ENV:MYDIR}/cache/%{ENV:OMGFILE} -x
 RewriteRule . %{ENV:MYDIR}/cache/%{ENV:OMGFILE} [L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
