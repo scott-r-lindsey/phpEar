@@ -31,13 +31,14 @@ catch (exception $e){
 class phpEar{
 
     public $source_prefix     = false;
-    public $source_suffix     = false;
+    public $source_suffix     = '';
     public $source_regex      = false;
-    public $cachettl          = 0;
-    public $max_y             = 648;
-    public $max_x             = 800;
-    public $cachedir          = 'cache/';
     public $failimg           = 'missing.png';
+    public $cleanup           = 3600;
+    public $cachettl          = 43200;
+    public $max_y             = 600;
+    public $max_x             = 600;
+    public $cachedir          = 'cache/';
     public $png_quality       = 9;
     public $jpeg_quality      = 85;
     public $dir_mode          = 0775;
