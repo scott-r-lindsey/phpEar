@@ -41,6 +41,7 @@ class phpEar{
     public $cachedir          = 'cache/';
     public $png_quality       = 9;
     public $jpeg_quality      = 85;
+    public $controldir        = 'control/';
     public $dir_mode          = 0775;
 
     private $format           = false;
@@ -75,6 +76,7 @@ class phpEar{
 
         $this->format       = $this->parseFormat($format);
         $this->local_raw    = $this->ds($this->fetchFile($name));
+        $raw_mtime          = filemtime($this->local_raw);
         
         if ($this->missing){
             $this->local_cooked = $this->ds($this->cachedir . '/missing/' . $this->incomingPath);
@@ -108,20 +110,21 @@ class phpEar{
                     $this->fail('jpeg creation error');
             }
 
-            $time = filemtime($this->local_raw);
+            $raw_mtime = filemtime($this->local_raw);
 
             (chmod ($this->local_cooked, 0775)) ||
                 $this->fail('chmod error');
 
-            touch ($file, $time, $time);
+            touch ($this->local_cooked, $raw_mtime);
         }
         else if ( filemtime($this->local_cooked) == filemtime($this->local_cooked)){
             // this is a file that's been marked non-executable but seems to be good
             (chmod ($this->local_cooked, 0775)) ||
                 $this->fail('chmod error');
+            touch ($this->local_cooked, $raw_mtime);
         }
 
-        $postprocess = true;
+        $postprocess = $this->checkCleanup();
 
         if ($postprocess){
             header('Connection: close');
@@ -134,7 +137,6 @@ class phpEar{
 
         if ($postprocess){
             flush();
-            fclose(STDOUT);
             $this->cleanup();
         }
     }
@@ -275,7 +277,7 @@ class phpEar{
         }
         return false;
     }
-    function mkpath($path) {
+    private function mkpath($path) {
 
         $path = str_replace("\\", "/", $path);
         $dirs = explode("/", $path);
@@ -288,12 +290,32 @@ class phpEar{
             }
         }
     }
-    private function cleanup(){
-        touch ($this->cwd . '/control/proc-start');
+    private function checkCleanup(){
+        $start = $this->ds($this->controldir . '/proc-start');
 
-        // stub
-        // do some work!
-        
-        touch ($this->cwd . '/control/proc-end');
+        if ( filemtime($start)  < (time() - $this->cleanup)){
+            touch($start);
+            return true;
+        }
+        return false;
+    }
+    private function cleanup(){
+        $end = $this->ds($this->controldir . '/proc-end');
+
+        foreach (new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($this->ds($this->cachedir)),
+                RecursiveIteratorIterator::CHILD_FIRST) as $name => $obj){
+
+            if (
+                (!$obj->isFile()) || 
+                (!$obj->isExecutable()) ||
+                ($obj->getCtime() > (time() - $this->cachettl))){
+
+                continue;
+            }
+            chmod ($name, 0666);
+        }
+
+        touch($end);
     }
 }
