@@ -68,7 +68,7 @@
 # You probably don't want to change "cachedir".  If you do, you'll have to 
 # modify the .htaccess file.
 
-#    $config['cachedir']        = 'cache/
+#    $config['cachedir']        = 'cache';
 
 # 
 # quality field for imagepng().
@@ -81,4 +81,14 @@
 #
 
 #    $config['jpeg_quality']    = 85;
+
+#
+# controldir holds the files that regulate cleanup operations
+
+#    $config['controldir']      = 'control';
+
+#
+# dir_mode -- how the directories should be chmod'd within in the cache.
+
+#    $config['dir_mode']      = 0775;
 
