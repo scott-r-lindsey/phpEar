@@ -108,8 +108,16 @@ class phpEar{
             }
 
             $time = filemtime($this->local_raw);
-            chmod (777, $this->local_cooked);
+
+            (chmod ($this->local_cooked, 0775)) ||
+                $this->fail('chmod error');
+
             touch ($file, $time, $time);
+        }
+        else if ( filemtime($this->local_cooked) == filemtime($this->local_cooked)){
+            // this is a file that's been marked non-executable but seems to be good
+            (chmod ($this->local_cooked, 0775)) ||
+                $this->fail('chmod error');
         }
 
         $postprocess = true;
