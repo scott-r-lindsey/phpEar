@@ -295,17 +295,20 @@ class phpEar{
         }
     }
     private function checkCleanup(){
-        $start = $this->ds($this->controldir . '/proc-start');
 
-        if ( filemtime($start)  < (time() - $this->cleanup)){
-            touch($start);
+        if (($this->cachettl) && ( filemtime($start)  < (time() - $this->cleanup))){
+            touch($this->ds($this->controldir . '/proc-start'));
+
             return true;
         }
         return false;
     }
     private function cleanup(){
-        $end = $this->ds($this->controldir . '/proc-end');
+        if (!$this->cachettl){
+            return;
+        }
 
+        // expires cache by marking files non-executable
         foreach (new RecursiveIteratorIterator(
                 new RecursiveDirectoryIterator($this->ds($this->cachedir)),
                 RecursiveIteratorIterator::CHILD_FIRST) as $name => $obj){
@@ -320,6 +323,23 @@ class phpEar{
             chmod ($name, 0666);
         }
 
-        touch($end);
+        if (!$this->expirettl){
+            return;
+        }
+
+        // deletes unused resized files
+        foreach (new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($this->ds($this->cachedir)),
+                RecursiveIteratorIterator::CHILD_FIRST) as $name => $obj){
+
+            if (
+                ($obj->isFile()) &&
+                (!$obj->isExecutable()) &&
+                ($obj->getCtime() < (time() - $this->expirettl))){
+
+                unlink($name);
+            }
+        }
+        touch($this->ds($this->controldir . '/proc-end'));
     }
 }
