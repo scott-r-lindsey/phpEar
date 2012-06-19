@@ -22,9 +22,24 @@ try{
     $ear->run();
 }
 catch (exception $e){
+?>
+<html><head></head><body>
+<pre>
+______ _   _ ______   _____           
+| ___ \ | | || ___ \ |  ___|          
+| |_/ / |_| || |_/ / | |__  __ _ _ __ 
+|  __/|  _  ||  __/  |  __|/ _` | '__|
+| |   | | | || |     | |__| (_| | |   
+\_|   \_| |_/\_|     \____/\__,_|_| 
+
+<?php
     echo "Message: " . $e->getMessage() . "<br />";
-    echo "File: " . $e->getFile() . "<br />";
-    echo "Line: " . $e->getLine();
+?>
+
+Documentation: <a href="https://github.com/scott-r-lindsey/phpEar">https://github.com/scott-r-lindsey/phpEar</a>
+
+</pre></body></html>
+<?php
 }
 
 /* ----------------------------------------------------------------------------------------------------------- */
@@ -212,14 +227,20 @@ class phpEar{
     }
     private function validate(){
         // sanity check args
+
         // make sure we can open "alt" image
+        if (!@getimagesize($this->ds($this->cwd . '/' . $this->failimg))){
+            $this->fail('Failed validating image "' . $this->failimg . '"');
+        }
+        
+
         // check write permissions
         // 
  
     }
     private function fail($message){
         $err = error_get_last();
-        throw new Exception($message . ', ' . $err['message']);
+        throw new Exception($message . "\nError: " . $err['message']);
     }
     private function fetchFile($name){
 
