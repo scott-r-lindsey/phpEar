@@ -76,14 +76,15 @@ class phpEar{
         $file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
         $altmax         = false;
         $postprocess    = false;
+        $file           = ltrim($file, '/');
 
         $this->validate();
 
-        if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)\.(png|jpg|gif)$/', $file, $matches)){
+        if (preg_match('/^([^\/]+)\/([x|y])([\d]+)\.(png|jpg|jpeg|gif)$/', $file, $matches)){
             list($match, $name, $xy, $size, $format) = $matches;
             $this->incomingPath = "$xy$size.$format";
         }
-        else if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)-([\d]+)\.(png|jpg|jpeg|gif)$/i', $file, $matches)){
+        else if (preg_match('/^([^\/]+)\/([x|y])([\d]+)-([\d]+)\.(png|jpg|jpeg|gif)$/i', $file, $matches)){
             list($match, $name, $xy, $size, $altmax, $format) = $matches;
             $this->incomingPath = "$xy$size-$altmax.$format";
         }
