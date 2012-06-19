@@ -88,7 +88,7 @@ class phpEar{
             $this->incomingPath = "$xy$size-$altmax.$format";
         }
         else{
-            $this->fail();
+            $this->fail('Url was not recognized.');
         }
 
         $this->format       = $this->parseFormat($format);
