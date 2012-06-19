@@ -262,11 +262,13 @@ class phpEar{
             curl_setopt($ch, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
         }
         $data = curl_exec($ch);
+        $time = curl_getinfo($ch, CURLINFO_FILETIME);
 
         if ($data){
             file_put_contents($local, $data);
-            $time = curl_getinfo($ch, CURLINFO_FILETIME);
-            touch ($local, $time, $time);
+        }
+        if (file_exists($local)){
+            touch ($local, $time);
         }
         curl_close($ch);
         
