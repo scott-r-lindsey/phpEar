@@ -330,16 +330,13 @@ class phpEar{
         return false;
     }
     private function mkpath($path) {
-
-        $path = str_replace("\\", "/", $path);
-        $dirs = explode("/", $path);
-        $path = '';
-
-        foreach ($dirs as $d){
-            $path .= $d .'/';
-            if (!file_exists($path)){
-                mkdir($path, $this->dir_mode) || ($this->fail('Could not create dir ' . $path));
-            }
+        while (!file_exists($path)){
+            $missing[]  = substr($path, strrpos($path, '/')+1);
+            $path       = substr($path, 0, strrpos($path, '/'));
+        }
+        foreach ($missing as $dir){
+            $path .= '/' . $dir;
+            mkdir($path, $this->dir_mode) || ($this->fail('Could not create dir ' . $path));
         }
     }
     private function checkCleanup(){
