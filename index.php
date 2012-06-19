@@ -343,8 +343,9 @@ class phpEar{
         }
     }
     private function checkCleanup(){
+        $start = $this->ds($this->controldir . '/proc-start');
         if (($this->cachettl) && ( filemtime($start)  < (time() - $this->cleanup))){
-            touch($this->ds($this->controldir . '/proc-start'));
+            touch($start);
 
             return true;
         }
