@@ -43,15 +43,24 @@
 # that are more than cachettl seconds since last check will be marked
 # as non-executable, causing them to be rechecked before being served.
 # This is ignored if source_prefix is local.
+# a value of 0 will disable cleanup.
 
-#    $config['cleanup']         = 3600
+#    $config['cleanup']         = 3600 // one hour
 
 #
 # During cleanup, files will be marked non-executable if the source image
 # has not been verifed in cachettl seconds.
 # This is ignored if source_prefix is local.
+# A value of 0 will cause files to never be expired.
 
-#    $config['cachettl']        = 43200;
+#    $config['cachettl']        = 43200; // 12 hours
+
+#
+# During cleanup, files which are not executable and which have not been
+# changed (ctime) for greater than expirettl seconds will be erased.
+# A value of 0 will cause files to never be erased.
+
+#    $config['expirettl']       = 604800; // 1 week
 
 #
 # Maximum height for requested images.  You don't want people ddosing you 
@@ -69,6 +78,18 @@
 # modify the .htaccess file.
 
 #    $config['cachedir']        = 'cache';
+
+#
+# The name of the folder within the cache directory which stores files 
+# retrieved from a remote server.
+
+#    $config['mirrordir']        = '__mirror';
+
+# The name of the folder which contains resized versions of the "missing"
+# image file.
+
+#    $config['missingdir']        = '__missing';
+
 
 # 
 # quality field for imagepng().
