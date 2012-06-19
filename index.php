@@ -42,6 +42,8 @@ class phpEar{
     public $png_quality       = 9;
     public $jpeg_quality      = 85;
     public $controldir        = 'control/';
+    public $mirrordir         = '__mirror';
+    public $missingdir        = '__missing';
     public $dir_mode          = 0775;
 
     private $format           = false;
@@ -79,7 +81,7 @@ class phpEar{
         $raw_mtime          = filemtime($this->local_raw);
         
         if ($this->missing){
-            $this->local_cooked = $this->ds($this->cachedir . '/missing/' . $this->incomingPath);
+            $this->local_cooked = $this->ds($this->cachedir . '/' . $this->missingdir . '/' . $this->incomingPath);
         }
         else{
             $this->local_cooked = $this->ds($this->cachedir . '/' . $name . '/' . $this->incomingPath);
@@ -243,8 +245,8 @@ class phpEar{
         return $this->failimg;
     }
     private function netFetch($source){
-        $local = $this->cachedir . '/source/' . 
-            preg_replace('/^https?:\/\/([^\/]+)\//i', '', $source);
+        $local = $this->ds($this->cachedir . '/' .  $this->mirrordir . '/' .
+            preg_replace('/^https?:\/\/([^\/]+)\//i', '', $source));
 
         if (!file_exists(dirname($local))){
             ($this->mkpath (dirname($local), 0777));
