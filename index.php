@@ -51,6 +51,7 @@ class phpEar{
     public $failimg           = 'missing.png';
     public $cleanup           = 3600;
     public $cachettl          = 43200;
+    public $expirettl         = 604800;
     public $max_y             = 600;
     public $max_x             = 600;
     public $cachedir          = 'cache/';
@@ -69,15 +70,14 @@ class phpEar{
     public function phpEar(){
     }
     public function run(){
-        $this->validate();
-
         $this->cwd      = dirname(__FILE__); // I think I won't rely on cwd really
-
         $folder         = dirname($_SERVER['SCRIPT_FILENAME']);                     // the full path to here
         $urlfolder      = substr($folder, strlen($_SERVER['DOCUMENT_ROOT']));       // '/images/'
         $file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
         $altmax         = false;
         $postprocess    = false;
+
+        $this->validate();
 
         if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)\.(png|jpg|gif)$/', $file, $matches)){
             list($match, $name, $xy, $size, $format) = $matches;
@@ -228,19 +228,45 @@ class phpEar{
     private function validate(){
         // sanity check args
 
+        if (!$this->source_prefix){
+            $this->fail('Minimal config: $config[\'source_prefix\'] must be valid.');
+        }
+
+        if (    (0 === strncmp($this->source_prefix, 'http://', 7)) ||
+                (0 === strncmp($this->source_prefix, 'https://', 8))){
+
+            // could do a dns check or something.  meh.
+        }
+        else{
+            if (!file_exists($this->ds($this->source_prefix))){
+                $this->fail('source_prefix "' . $this->source_prefix .'" does not exist or is not readable.');
+            }
+            else if (!is_readable($this->source_prefix)){
+                $this->fail('source_prefix "' . $this->source_prefix .'" does not seem to be readable.');
+            }
+        }
+
         // make sure we can open "alt" image
         if (!@getimagesize($this->ds($this->cwd . '/' . $this->failimg))){
             $this->fail('Failed validating image "' . $this->failimg . '"');
         }
         
-
-        // check write permissions
-        // 
- 
+        // check write permissions on cache
+        if (!file_exists($this->ds($this->cachedir))){
+            $this->fail('cachedir "' . $this->cachedir .'" does not exist or is not readable.');
+        }
+        else if (!is_writable($this->ds($this->cachedir))){
+            $this->fail('cachedir "' . $this->cachedir .'" does not seem to be writable.');
+        }
     }
     private function fail($message){
         $err = error_get_last();
-        throw new Exception($message . "\nError: " . $err['message']);
+        if ($err['message']){
+            throw new Exception($message . "\nError: " . $err['message']);
+        }
+        else{
+            throw new Exception($message);
+        }
     }
     private function fetchFile($name){
 
@@ -250,8 +276,8 @@ class phpEar{
             $source = preg_replace($regx, $replace, $source);
         }
 
-        if (    (strncmp($this->source_prefix, 'http://', 7)) ||
-                (strncmp($this->source_prefix, 'https://', 8))){
+        if (    (0 === strncmp($this->source_prefix, 'http://', 7)) ||
+                (0 === strncmp($this->source_prefix, 'https://', 8))){
 
             if ( $file = $this->netFetch($source)){
                return $file;
@@ -316,7 +342,6 @@ class phpEar{
         }
     }
     private function checkCleanup(){
-
         if (($this->cachettl) && ( filemtime($start)  < (time() - $this->cleanup))){
             touch($this->ds($this->controldir . '/proc-start'));
 
