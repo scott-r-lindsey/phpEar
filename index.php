@@ -334,6 +334,7 @@ class phpEar{
             $missing[]  = substr($path, strrpos($path, '/')+1);
             $path       = substr($path, 0, strrpos($path, '/'));
         }
+        $missing = array_reverse($missing);
         foreach ($missing as $dir){
             $path .= '/' . $dir;
             mkdir($path, $this->dir_mode) || ($this->fail('Could not create dir ' . $path));
