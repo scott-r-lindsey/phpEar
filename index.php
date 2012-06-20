@@ -105,7 +105,6 @@ class phpEar{
             if ($this->local_regex){
                 list($regx, $replace) = $this->local_regex;
                 $this->local_cooked = preg_replace($regx, $replace, $this->local_cooked);
-sdfasdf
             }
         }
 
