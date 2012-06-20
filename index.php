@@ -76,19 +76,20 @@ class phpEar{
         $file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
         $altmax         = false;
         $postprocess    = false;
+        $file           = ltrim($file, '/');
 
         $this->validate();
 
-        if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)\.(png|jpg|gif)$/', $file, $matches)){
+        if (preg_match('/^([^\/]+)\/([x|y])([\d]+)\.(png|jpg|jpeg|gif)$/', $file, $matches)){
             list($match, $name, $xy, $size, $format) = $matches;
             $this->incomingPath = "$xy$size.$format";
         }
-        else if (preg_match('/^\/([^\/]+)\/([x|y])([\d]+)-([\d]+)\.(png|jpg|jpeg|gif)$/i', $file, $matches)){
+        else if (preg_match('/^([^\/]+)\/([x|y])([\d]+)-([\d]+)\.(png|jpg|jpeg|gif)$/i', $file, $matches)){
             list($match, $name, $xy, $size, $altmax, $format) = $matches;
             $this->incomingPath = "$xy$size-$altmax.$format";
         }
         else{
-            $this->fail('Url was not recognized.');
+            $this->fail('Url (' . $file . ') was not recognized.');
         }
 
         $this->format       = $this->parseFormat($format);
@@ -334,21 +335,20 @@ class phpEar{
         return false;
     }
     private function mkpath($path) {
-
-        $path = str_replace("\\", "/", $path);
-        $dirs = explode("/", $path);
-        $path = '';
-
-        foreach ($dirs as $d){
-            $path .= $d .'/';
-            if (!file_exists($path)){
-                mkdir($path, $this->dir_mode) || ($this->fail('Could not create dir ' . $path));
-            }
+        while (!file_exists($path)){
+            $missing[]  = substr($path, strrpos($path, '/')+1);
+            $path       = substr($path, 0, strrpos($path, '/'));
+        }
+        $missing = array_reverse($missing);
+        foreach ($missing as $dir){
+            $path .= '/' . $dir;
+            mkdir($path, $this->dir_mode) || ($this->fail('Could not create dir ' . $path));
         }
     }
     private function checkCleanup(){
+        $start = $this->ds($this->controldir . '/proc-start');
         if (($this->cachettl) && ( filemtime($start)  < (time() - $this->cleanup))){
-            touch($this->ds($this->controldir . '/proc-start'));
+            touch($start);
 
             return true;
         }
