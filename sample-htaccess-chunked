@@ -7,10 +7,9 @@ RewriteEngine On
 # $config['local_regex'] in config.php
 
 RewriteRule (.*) - [env=OMGFILE:$1]
-RewriteRule (.)$ - [env=LASTCHAR:$1]
+RewriteRule (.)\/([^\/]+)\.([^\.]+)$ - [env=LASTCHAR:$1]
 
 # block out these default files, just to be pendantic
-RewriteCond %{ENV:OMGFILE} ^cache [OR]
 RewriteCond %{ENV:OMGFILE} ^config.php [OR]
 RewriteCond %{ENV:OMGFILE} ^control [OR]
 RewriteCond %{ENV:OMGFILE} ^.git [OR]
