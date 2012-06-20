@@ -32,6 +32,17 @@
 #    $config['source_regex']    = false;
 
 #
+# local_regex will be applied to the storage path for your image files.  If
+# you use it, you will have to edit the .htaccess files or else you will
+# not have the benefit of automatically served cached images.
+# 
+# To use sample-htaccess-chunked:  
+# array('/\/([^\/]*)(\d)\/([^\/]*).([A-z]+)$/', '/\2/\1\2/\3.\4');
+# .../123456/x123.jpg  -> .../6/123456/x123.jpg
+
+#    $config['local_regex']    = false;
+
+#
 # "failimg" is a graphic to display when the incoming url maps to an image that
 # does not exist.  By default relative to this directory, but can be absolute.
 

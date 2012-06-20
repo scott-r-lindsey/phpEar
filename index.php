@@ -295,6 +295,11 @@ class phpEar{
         $local = $this->ds($this->cachedir . '/' .  $this->mirrordir . '/' .
             preg_replace('/^https?:\/\/([^\/]+)\//i', '', $source));
 
+        if ($this->local_regex){
+            list($regx, $replace) = $this->local_regex;
+            $local = preg_replace($regx, $replace, $local);
+        }
+
         if (!file_exists(dirname($local))){
             ($this->mkpath (dirname($local), 0777));
         }

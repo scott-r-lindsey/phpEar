@@ -1,9 +1,13 @@
 RewriteEngine On
 
 ###
-# OMG I hate mod rewrite.
+# this htaccess works around 32k directory limts by pushing folders 
+# down one level.  12345.jpg is stored in 5/12345/
+# To use this file, changes will also need to be made to 
+# $config['local_regex'] in config.php
 
 RewriteRule (.*) - [env=OMGFILE:$1]
+RewriteRule (.)$ - [env=LASTCHAR:$1]
 
 # block out these default files, just to be pendantic
 RewriteCond %{ENV:OMGFILE} ^cache [OR]
@@ -17,9 +21,9 @@ RewriteRule . / [R=404]
 
 RewriteCond %{REQUEST_FILENAME} ^(.*)/.*$ 
 RewriteRule (.*) - [env=MYDIR:%1]
-RewriteCond %{ENV:MYDIR}/cache/%{ENV:OMGFILE} -f
-RewriteCond %{ENV:MYDIR}/cache/%{ENV:OMGFILE} -x
-RewriteRule . %{ENV:MYDIR}/cache/%{ENV:OMGFILE} [L]
+RewriteCond %{ENV:MYDIR}/cache/%{ENV:LASTCHAR}/%{ENV:OMGFILE} -f
+RewriteCond %{ENV:MYDIR}/cache/%{ENV:LASTCHAR}/%{ENV:OMGFILE} -x
+RewriteRule . %{ENV:MYDIR}/cache/%{ENV:LASTCHAR}/%{ENV:OMGFILE} [L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule . %{ENV:MYDIR}/index.php [L]

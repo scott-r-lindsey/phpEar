@@ -1,0 +1,26 @@
+RewriteEngine On
+
+###
+# for standard use, rename this file to '.htaccess'
+
+RewriteRule (.*) - [env=OMGFILE:$1]
+
+# block out these default files, just to be pendantic
+RewriteCond %{ENV:OMGFILE} ^cache [OR]
+RewriteCond %{ENV:OMGFILE} ^config.php [OR]
+RewriteCond %{ENV:OMGFILE} ^control [OR]
+RewriteCond %{ENV:OMGFILE} ^.git [OR]
+RewriteCond %{ENV:OMGFILE} ^README [OR]
+RewriteCond %{ENV:OMGFILE} ^sample-config.php [OR]
+RewriteCond %{ENV:OMGFILE} ^sample-missing.png
+RewriteRule . / [R=404]
+
+RewriteCond %{REQUEST_FILENAME} ^(.*)/.*$ 
+RewriteRule (.*) - [env=MYDIR:%1]
+RewriteCond %{ENV:MYDIR}/cache/%{ENV:OMGFILE} -f
+RewriteCond %{ENV:MYDIR}/cache/%{ENV:OMGFILE} -x
+RewriteRule . %{ENV:MYDIR}/cache/%{ENV:OMGFILE} [L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule . %{ENV:MYDIR}/index.php [L]
+
