@@ -2,3 +2,4 @@
 config.php
 cache/*
 missing.png
+.htaccess
