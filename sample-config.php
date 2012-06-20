@@ -37,8 +37,9 @@
 # not have the benefit of automatically served cached images.
 # 
 # To use sample-htaccess-chunked:  
-# array('/\/([^\/]*)(\d)\/([^\/]*).([A-z]+)$/', '/\2/\1\2/\3.\4');
+# array('/\/([^\/]*)(\d)\/([^\/]*)\.([a-z]+)$/', '/\2/\1\2/\3.\4');
 # .../123456/x123.jpg  -> .../6/123456/x123.jpg
+
 
 #    $config['local_regex']    = false;
 
