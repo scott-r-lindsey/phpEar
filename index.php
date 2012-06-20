@@ -101,6 +101,12 @@ class phpEar{
         }
         else{
             $this->local_cooked = $this->ds($this->cachedir . '/' . $name . '/' . $this->incomingPath);
+
+            if ($this->local_regex){
+                list($regx, $replace) = $this->local_regex;
+                $this->local_cooked = preg_replace($regx, $replace, $this->local_cooked);
+sdfasdf
+            }
         }
 
         if (    (! file_exists($this->local_cooked)) or 
@@ -295,11 +301,6 @@ class phpEar{
     private function netFetch($source){
         $local = $this->ds($this->cachedir . '/' .  $this->mirrordir . '/' .
             preg_replace('/^https?:\/\/([^\/]+)\//i', '', $source));
-
-        if ($this->local_regex){
-            list($regx, $replace) = $this->local_regex;
-            $local = preg_replace($regx, $replace, $local);
-        }
 
         if (!file_exists(dirname($local))){
             ($this->mkpath (dirname($local), 0777));
