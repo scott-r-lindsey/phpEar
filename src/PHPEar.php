@@ -135,14 +135,17 @@ class PHPEar {
 
         $dims = getimagesize($this->local_raw);
 
-        if ('image/jpeg' == $dims['mime']){
+        if ('image/jpeg' == $dims['mime']) {
             $src_img = imagecreatefromjpeg($this->local_raw);
         }
-        else if ('image/gif' == $dims['mime']){
+        else if ('image/gif' == $dims['mime']) {
             $src_img = imagecreatefromgif($this->local_raw);
         }
-        else if ('image/png' == $dims['mime']){
+        else if ('image/png' == $dims['mime']) {
             $src_img = imagecreatefrompng($this->local_raw);
+        }
+        else if('image/tiff' == $dims['mime'] || 'image/tiff-fx' == $dims['mime']) {
+            $src_img = imagecreatefromjpeg( PHPEarHelper::tiff2jpg($this->local_raw) );
         }
 
         $old_x      = imageSX($src_img);

@@ -17,7 +17,7 @@ try{
     foreach ($config as $key => $value){
         $ear->$key = $value;
     }
-    
+
     $ear->run();
 }
 catch (exception $e){
