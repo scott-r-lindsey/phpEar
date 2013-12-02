@@ -1,0 +1,22 @@
+{
+    "name": "scott-r-lindsey/phpEar",
+    "type": "library",
+    "license": "MIT",
+    "description": "Image host application with image resizing and conversion capabilities",
+    "keywords": ["image", "proxy", "resize", "convert"],
+    "require": {
+        "php": ">=5.3.0"
+    },
+    "homepage": "https://github.com/scott-r-lindsey/phpEar",
+    "authors": [
+        {
+            "name": "Scott R Lindsey",
+            "email": "scott.r.lindsey@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-0": {
+            "PHPEar": "src"
+        }
+    }
+}

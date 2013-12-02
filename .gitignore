@@ -1,5 +1,12 @@
+#Keeing out PHP Storm
+.idea/*
+
+#Keeping out configuration files
 *.swp
 config.php
 cache/*
 missing.png
 .htaccess
+
+#Keeping out composer vendor
+vendor/
