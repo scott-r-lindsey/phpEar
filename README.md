@@ -31,7 +31,7 @@ Minimum installation and configuration requirements:
 
 2. .htaccess - A copy of the suggested file configuration is provided in the file [sample-htaccess](./sample-htaccess)
 
-3. /cache folder - This folder needs to be configured so that all the apache user is able to create directories and write files to it
+3. /cache and /control folders - These folders needs to be configured so that the apache user is able to create directories and write files to it
 
 
 

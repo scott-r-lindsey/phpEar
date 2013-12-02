@@ -6,6 +6,8 @@ class PHPEar {
     public $source_prefix     = false;
     public $source_suffix     = '';
     public $source_regex      = false;
+    public $incomingPath      = '';
+    public $local_cooked      = '';
     public $failimg           = 'missing.png';
     public $cleanup           = 3600;
     public $cachettl          = 43200;
@@ -33,9 +35,8 @@ class PHPEar {
         $folder         = dirname($_SERVER['SCRIPT_FILENAME']);                     // the full path to here
         $urlfolder      = substr($folder, strlen($_SERVER['DOCUMENT_ROOT']));       // '/images/'
         $file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
-        $altmax         = false;
-        $postprocess    = false;
         $file           = ltrim($file, '/');
+        $altmax         = false;
 
         $this->validate();
 
@@ -49,10 +50,11 @@ class PHPEar {
         }
         else{
             $this->fail('Url (' . $file . ') was not recognized.');
+            return;
         }
 
-        $this->format       = $this->parseFormat($format);
-        $this->local_raw    = $this->ds($this->fetchFile($name));
+        $this->format       = $this->parseFormat( $format );
+        $this->local_raw    = $this->ds($this->fetchFile( $name ));
         $raw_mtime          = filemtime($this->local_raw);
 
         if ($this->missing){
@@ -61,9 +63,9 @@ class PHPEar {
         else{
             $this->local_cooked = $this->ds($this->cachedir . '/' . $name . '/' . $this->incomingPath);
 
-            if ($this->local_regex){
-                list($regx, $replace) = $this->local_regex;
-                $this->local_cooked = preg_replace($regx, $replace, $this->local_cooked);
+            if ( $this->source_regex ){
+                list($regx, $replace) = $this->source_regex;
+                $this->local_cooked = preg_replace($regx, $replace, $this->source_regex);
             }
         }
 
@@ -74,7 +76,7 @@ class PHPEar {
             $cooked_dir = dirname($this->local_cooked);
 
             if (! file_exists($cooked_dir)){
-                ($this->mkpath ($cooked_dir, 0777));
+                $this->mkpath($cooked_dir, 0777);
             }
 
             $img = $this->getSized($xy, $size, $altmax);
@@ -147,6 +149,10 @@ class PHPEar {
         else if('image/tiff' == $dims['mime'] || 'image/tiff-fx' == $dims['mime']) {
             $src_img = imagecreatefromjpeg( PHPEarHelper::tiff2jpg($this->local_raw) );
         }
+        else {
+            $this->fail('Failed to get source image as the mime type (' . $dims['mime'] .  ') is not currently supported.');
+            return false;
+        }
 
         $old_x      = imageSX($src_img);
         $old_y      = imageSY($src_img);
@@ -195,6 +201,7 @@ class PHPEar {
 
         $this->fail('Could not parse format.');
     }
+
     private function validate(){
         // sanity check args
 
@@ -229,6 +236,7 @@ class PHPEar {
             $this->fail('cachedir "' . $this->cachedir .'" does not seem to be writable.');
         }
     }
+
     private function fail($message){
         $err = error_get_last();
         if ($err['message']){
@@ -258,15 +266,16 @@ class PHPEar {
                 return $source;
             }
         }
+
         $this->missing = true;
-        return $this->failimg;
+        return $this->ds($this->cwd . '/' . $this->failimg);
     }
     private function netFetch($source){
         $local = $this->ds($this->cachedir . '/' .  $this->mirrordir . '/' .
             preg_replace('/^https?:\/\/([^\/]+)\//i', '', $source));
 
         if (!file_exists(dirname($local))){
-            ($this->mkpath (dirname($local), 0777));
+            $this->mkpath (dirname($local), 0777);
         }
 
         $ch = curl_init();
@@ -355,6 +364,7 @@ class PHPEar {
                 unlink($name);
             }
         }
+
         touch($this->ds($this->controldir . '/proc-end'));
     }
 }
