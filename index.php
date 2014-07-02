@@ -61,16 +61,19 @@ class phpEar{
     public $mirrordir         = '__mirror';
     public $missingdir        = '__missing';
     public $dir_mode          = 0775;
+    public $log               = false;
+    public $log_lines         = array();
 
     private $format           = false;
     private $local_raw        = false;
     private $missing          = false;
     private $cwd              = false;
 
+
     public function phpEar(){
     }
     public function run(){
-        $this->cwd      = dirname(__FILE__); // I think I won't rely on cwd really
+        $this->cwd      = dirname(__FILE__);
         $folder         = dirname($_SERVER['SCRIPT_FILENAME']);                     // the full path to here
         $urlfolder      = substr($folder, strlen($_SERVER['DOCUMENT_ROOT']));       // '/images/'
         $file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
@@ -78,6 +81,7 @@ class phpEar{
         $postprocess    = false;
         $file           = ltrim($file, '/');
 
+        $this->log('START: ' . $file);
         $this->validate();
 
         if (preg_match('/^([^\/]+)\/([x|y])([\d]+)\.(png|jpg|jpeg|gif)$/', $file, $matches)){
@@ -97,6 +101,7 @@ class phpEar{
         $raw_mtime          = filemtime($this->local_raw);
         
         if ($this->missing){
+            $this->log('salvaged good file ' . $this->local_cooked);
             $this->local_cooked = $this->ds($this->cachedir . '/' . $this->missingdir . '/' . $this->incomingPath);
         }
         else{
@@ -145,6 +150,7 @@ class phpEar{
             (chmod ($this->local_cooked, 0775)) ||
                 $this->fail('chmod error');
             touch ($this->local_cooked, $raw_mtime);
+            $this->log('salvaged good file ' . $this->local_cooked);
         }
 
         $postprocess = $this->checkCleanup();
@@ -162,6 +168,7 @@ class phpEar{
             flush();
             $this->cleanup();
         }
+        $this->writeLog();
     }
     private function ds ($str){
         // de-slash, and make absolute
@@ -306,11 +313,13 @@ class phpEar{
         }
 
         $ch = curl_init();
+        $this->log('fetching ' . $source);
         curl_setopt($ch, CURLOPT_FILETIME, true);
         curl_setopt($ch, CURLOPT_URL, $source);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 
         if (file_exists($local)){
+            $this->log('fetching ' . $source . ', time conditional');
             curl_setopt($ch, CURLOPT_TIMEVALUE, filemtime($local));
             curl_setopt($ch, CURLOPT_TIMECONDITION, CURL_TIMECOND_IFMODSINCE);
         }
@@ -318,7 +327,11 @@ class phpEar{
         $time = curl_getinfo($ch, CURLINFO_FILETIME);
 
         if ($data){
+            $this->log('storing downloaded file ' . $local);
             file_put_contents($local, $data);
+        }
+        else{
+            $this->log('dload returned no data');
         }
         if (file_exists($local)){
             touch ($local, $time);
@@ -328,6 +341,7 @@ class phpEar{
         if (file_exists($local)){
             if (!@getimagesize($local)){
                 unlink($local);
+                $this->log('deleting corrupt file ' . $local);
                 return false;
             }
             return $local;
@@ -346,18 +360,28 @@ class phpEar{
         }
     }
     private function checkCleanup(){
-        $start = $this->ds($this->controldir . '/proc-start');
-        if (($this->cachettl) && ( filemtime($start)  < (time() - $this->cleanup))){
-            touch($start);
+        if (!$this->cachettl){
+            $this->log('no cachettl set - auto cleanup disabled');
+            return;
+        }        
 
+        $starttime = filemtime($start = $this->ds($this->controldir . '/proc-start'));
+        $nexttime = time() - $this->cleanup;
+
+        if ($starttime < $nexttime){
+            touch($start);
             return true;
         }
+        $this->log(
+            'no cleanup, ' . date(DATE_RFC2822, $starttime) .
+            ' >= ' . date(DATE_RFC2822, $nexttime));
         return false;
     }
     private function cleanup(){
         if (!$this->cachettl){
             return;
         }
+        $this->log('running cleanup');
 
         // expires cache by marking files non-executable
         foreach (new RecursiveIteratorIterator(
@@ -369,8 +393,10 @@ class phpEar{
                 (!$obj->isExecutable()) ||
                 ($obj->getCtime() > (time() - $this->cachettl))){
 
-                continue;
+                    //$this->log($name . ': ' . date(DATE_RFC2822, filectime($name)));
+                    continue;
             }
+            $this->log("marking non-executable file $name");
             chmod ($name, 0666);
         }
 
@@ -388,9 +414,18 @@ class phpEar{
                 (!$obj->isExecutable()) &&
                 ($obj->getCtime() < (time() - $this->expirettl))){
 
+                $this->log("deleting unused file $name");
                 unlink($name);
             }
         }
         touch($this->ds($this->controldir . '/proc-end'));
+    }
+    private function log($message){
+        if (!$this->log){return;}
+        $this->log_lines[] = $message;
+    }
+    private function writeLog(){
+        if (!$this->log){return;}
+        file_put_contents($this->log, implode("\n", $this->log_lines) . "\n", FILE_APPEND);
     }
 }
