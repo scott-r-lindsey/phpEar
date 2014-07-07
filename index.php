@@ -101,8 +101,8 @@ class phpEar{
         $raw_mtime          = filemtime($this->local_raw);
         
         if ($this->missing){
-            $this->log('salvaged good file ' . $this->local_cooked);
             $this->local_cooked = $this->ds($this->cachedir . '/' . $this->missingdir . '/' . $this->incomingPath);
+            $this->log('salvaged good file ' . $this->local_cooked);
         }
         else{
             $this->local_cooked = $this->ds($this->cachedir . '/' . $name . '/' . $this->incomingPath);
