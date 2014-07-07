@@ -145,7 +145,7 @@ class phpEar{
 
             touch ($this->local_cooked, $raw_mtime);
         }
-        else if ( filemtime($this->local_cooked) == filemtime($this->local_cooked)){
+        else if ( filemtime($this->local_cooked) == filemtime($this->local_raw) ){
             // this is a file that's been marked non-executable but seems to be good
             (chmod ($this->local_cooked, 0775)) ||
                 $this->fail('chmod error');
