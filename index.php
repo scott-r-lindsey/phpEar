@@ -114,7 +114,7 @@ class phpEar{
         }
 
         if (    (! file_exists($this->local_cooked)) or 
-                ( filemtime($this->local_cooked) != filemtime($this->local_cooked))){
+                ( filemtime($this->local_cooked) != filemtime($this->local_raw))){
                 // if the file does not exist, or else it does and the timestamp is wrong...
 
             $cooked_dir = dirname($this->local_cooked);
