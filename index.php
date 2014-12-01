@@ -24,7 +24,7 @@ try{
 catch (exception $e){
 ?>
 <html><head></head><body>
-<pre>
+<!-- /* --><pre>
 ______ _   _ ______   _____           
 | ___ \ | | || ___ \ |  ___|          
 | |_/ / |_| || |_/ / | |__  __ _ _ __ 
@@ -35,6 +35,7 @@ ______ _   _ ______   _____
 <?php
     echo "Message: " . $e->getMessage() . "<br />";
 ?>
+
 
 Documentation: <a href="https://github.com/scott-r-lindsey/phpEar">https://github.com/scott-r-lindsey/phpEar</a>
 
@@ -72,6 +73,37 @@ class phpEar{
 
     public function phpEar(){
     }
+    public function clear($file){
+        if (!preg_match('/^clear\/([^\/]+)\/(.*)/', $file, $matches)){
+            $this->fail('Url (' . $file . ') was not recognized.');
+        }
+
+        list($match, $name, $size) = $matches;
+        $source = $this->getSourceUrl($name);
+        $local_mirror = $this->getLocalMirrorPath($source);
+        $local_cooked = $this->ds($this->cachedir . '/' . $name . '/' . $size);
+
+        if ($this->local_regex){
+            list($regx, $replace) = $this->local_regex;
+            $local_cooked = preg_replace($regx, $replace, $local_cooked);
+        }
+
+        $cache_dir = dirname($local_cooked);
+        foreach (array_diff( scandir( $cache_dir ), Array( ".", ".." ) ) as $f){
+            $erase[] = $cache_dir .'/'. $f;
+        }
+        $erase[] = $local_mirror;
+
+        $i = 0;
+        header("Content-Type:text/plain");
+        foreach ($erase as $e){
+            if (file_exists($e)){
+                $i++;
+                unlink($e);
+            }
+        }
+        print "deleted $i files\n";
+    }
     public function run(){
         $this->cwd      = dirname(__FILE__);
         $folder         = dirname($_SERVER['SCRIPT_FILENAME']);                     // the full path to here
@@ -80,6 +112,10 @@ class phpEar{
         $altmax         = false;
         $postprocess    = false;
         $file           = ltrim($file, '/');
+
+        if (false !== strpos($file, 'clear/')){
+            return $this->clear($file);
+        }
 
         $this->log('START: ' . $file);
         $this->validate();
@@ -281,13 +317,16 @@ class phpEar{
             throw new Exception($message);
         }
     }
-    private function fetchFile($name){
-
+    private function getSourceUrl($name){
         $source = $this->source_prefix . $name . $this->source_suffix;
         if ($this->source_regex){
             list($regx, $replace) = $this->source_regex;
             $source = preg_replace($regx, $replace, $source);
         }
+        return $source;
+    }
+    private function fetchFile($name){
+        $source = $this->getSourceUrl($name);
 
         if (    (0 === strncmp($this->source_prefix, 'http://', 7)) ||
                 (0 === strncmp($this->source_prefix, 'https://', 8))){
@@ -304,9 +343,13 @@ class phpEar{
         $this->missing = true;
         return $this->failimg;
     }
-    private function netFetch($source){
+    private function getLocalMirrorPath($source){
         $local = $this->ds($this->cachedir . '/' .  $this->mirrordir . '/' .
             preg_replace('/^https?:\/\/([^\/]+)\//i', '', $source));
+        return $local;
+    }
+    private function netFetch($source){
+        $local = $this->getLocalMirrorPath($source);
 
         if (!file_exists(dirname($local))){
             ($this->mkpath (dirname($local), 0777));
