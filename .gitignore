@@ -3,3 +3,4 @@ config.php
 cache/*
 missing.png
 .htaccess
+debug.log
