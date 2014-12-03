@@ -267,6 +267,19 @@ class phpEar{
         }
         return str_replace('//', '/', $str);
     }
+    private function tiff2jpg($filePath){
+        if( class_exists ( 'Imagick' ) ) {
+            $im = new \Imagick( $filePath );
+            $im->setImageCompression(\Imagick::COMPRESSION_JPEG);
+            $im->setImageCompressionQuality(300);
+            $im->setImageFormat('jpeg');
+            $str = $im->getImageBlob();
+            return $str;
+        }
+        else {
+            throw new Exception('Cannot convert image from TIFF file to JPEG for web consumption. Imagick library missing.');
+        }
+    }
     private function getSized($xy, $size, $altmax ){
 
         $dims = getimagesize($this->local_raw);
@@ -279,6 +292,9 @@ class phpEar{
         }
         else if ('image/png' == $dims['mime']){
             $src_img = imagecreatefrompng($this->local_raw);
+        }
+        else if('image/tiff' == $dims['mime'] || 'image/tiff-fx' == $dims['mime']) {
+            $src_img = imagecreatefromstring($this->tiff2jpg($this->local_raw) );
         }
         
         $old_x      = imageSX($src_img);
