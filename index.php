@@ -64,48 +64,26 @@ class phpEar{
     public $dir_mode          = 0775;
     public $log               = false;
     public $log_lines         = array();
+    public $awssns            = false;
+    public $sns_regex         = '';
 
     private $format           = false;
     private $local_raw        = false;
     private $missing          = false;
     private $cwd              = false;
 
-
     public function phpEar(){
-    }
-    public function clear($file){
-        if (!preg_match('/^clear\/([^\/]+)\/(.*)/', $file, $matches)){
-            $this->fail('Url (' . $file . ') was not recognized.');
-        }
-
-        list($match, $name, $size) = $matches;
-        $source = $this->getSourceUrl($name);
-        $local_mirror = $this->getLocalMirrorPath($source);
-        $local_cooked = $this->ds($this->cachedir . '/' . $name . '/' . $size);
-
-        if ($this->local_regex){
-            list($regx, $replace) = $this->local_regex;
-            $local_cooked = preg_replace($regx, $replace, $local_cooked);
-        }
-
-        $cache_dir = dirname($local_cooked);
-        foreach (array_diff( scandir( $cache_dir ), Array( ".", ".." ) ) as $f){
-            $erase[] = $cache_dir .'/'. $f;
-        }
-        $erase[] = $local_mirror;
-
-        $i = 0;
-        header("Content-Type:text/plain");
-        foreach ($erase as $e){
-            if (file_exists($e)){
-                $i++;
-                unlink($e);
-            }
-        }
-        print "deleted $i files\n";
     }
     public function run(){
         $this->cwd      = dirname(__FILE__);
+
+        if (    ($this->awssns) &&
+                ('POST' == $_SERVER['REQUEST_METHOD']) && 
+                (isset($_SERVER['HTTP_X_AMZ_SNS_MESSAGE_TYPE']))){
+
+            return $this->handleSNS();
+        }
+
         $folder         = dirname($_SERVER['SCRIPT_FILENAME']);                     // the full path to here
         $urlfolder      = substr($folder, strlen($_SERVER['DOCUMENT_ROOT']));       // '/images/'
         $file           = substr($_SERVER['REQUEST_URI'], strlen($urlfolder) +1);   // '9780061962165/y150.png'
@@ -203,6 +181,82 @@ class phpEar{
         if ($postprocess){
             flush();
             $this->cleanup();
+        }
+        $this->writeLog();
+    }
+    public function clear($file){
+        $this->log('initiating clear mode');
+        $this->log('file: ' . $file);
+
+        if (false !== strpos($file, '?')){
+            $file = substr($file, 0, strpos($file, '?'));
+        }
+
+        if (!preg_match('/^clear\/([^\/]+)\/(.*)/', $file, $matches)){
+            $this->fail('Url (' . $file . ') was not recognized.');
+        }
+
+        list($match, $name, $size) = $matches;
+        $source = $this->getSourceUrl($name);
+        $local_mirror = $this->getLocalMirrorPath($source);
+        $local_cooked = $this->ds($this->cachedir . '/' . $name . '/' . $size);
+
+        if ($this->local_regex){
+            list($regx, $replace) = $this->local_regex;
+            $local_cooked = preg_replace($regx, $replace, $local_cooked);
+        }
+
+        $cache_dir = dirname($local_cooked);
+        foreach (array_diff( scandir( $cache_dir ), Array( ".", ".." ) ) as $f){
+            $erase[] = $cache_dir .'/'. $f;
+        }
+        $erase[] = $local_mirror;
+
+        $i = 0;
+        header("Content-Type:text/plain");
+        foreach ($erase as $e){
+            if (file_exists($e)){
+                $i++;
+                unlink($e);
+                $this->log("unlink $e");
+            }
+        }
+        print "deleted $i files\n";
+        $this->writeLog();
+    }
+    public function handleSNS(){
+
+        $body       = @file_get_contents('php://input');
+        $data       = json_decode($body, true);
+        $type       = $data['Type'];
+
+        if ('SubscriptionConfirmation' == $type){
+            $url = $data['SubscribeURL'];
+            $this->log('Amazon SNS subscription confirmation: ' . $url);
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_exec($ch);
+            curl_close($ch);
+        }
+        else if ('Notification' == $type){
+            $this->log('Amazon SNS Notification detected');
+            $message = json_decode($data['Message'], true);
+
+            $key = $message['Records'][0]['s3']['object']['key'];
+
+            if ($this->sns_regex){
+                $this->log("Amazon SNS clear on resource $key");
+                list($regx, $replace) = $this->sns_regex;
+                if (preg_match($regx, $key)){
+                    $this->log("Amazon SNS clear on resource $key");
+                    $file = preg_replace($regx, $replace, $key);
+                    $this->clear($file);
+                }
+                else{
+                    $this->log("Amazon SNS regex miss on resource $key");
+                }
+            }
         }
         $this->writeLog();
     }
