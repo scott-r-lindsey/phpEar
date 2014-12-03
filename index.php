@@ -207,8 +207,10 @@ class phpEar{
         }
 
         $cache_dir = dirname($local_cooked);
-        foreach (array_diff( scandir( $cache_dir ), Array( ".", ".." ) ) as $f){
-            $erase[] = $cache_dir .'/'. $f;
+        if (file_exists($cache_dir)){
+            foreach (array_diff( scandir( $cache_dir ), Array( ".", ".." ) ) as $f){
+                $erase[] = $cache_dir .'/'. $f;
+            }
         }
         $erase[] = $local_mirror;
 
